@@ -3,7 +3,9 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - BunnyStop
+  - Bunny
   layers:
   - Default
   - TransparentFX
@@ -40,4 +42,13 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Background
+    uniqueID: 3674027487
+    locked: 0
+  - name: Middle Ground
+    uniqueID: 2058888941
+    locked: 0
+  - name: Foreground
+    uniqueID: 878795163
     locked: 0
