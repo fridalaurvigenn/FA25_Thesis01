@@ -17,7 +17,7 @@ public class RestorationRitual : MonoBehaviour
     public Image pageImage;
 
     [Header("Settings")]
-    public float holdDuration = 5f;
+    public float holdDuration = 4f;
 
     private bool playerInRange = false;
     private bool hasPerformedRitual = false;
@@ -25,7 +25,7 @@ public class RestorationRitual : MonoBehaviour
     private bool spellbookOpen = false;
     private float holdTimer = 0f;
 
-    private Color startColor = new Color32(231, 226, 217, 255); //#E7E2D9
+    private Color startColor = new Color32(224, 212, 195, 255); //#E0D4C3
     private Color endColor = Color.white;
 
     void Update()
