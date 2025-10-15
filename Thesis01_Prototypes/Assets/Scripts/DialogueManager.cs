@@ -4,38 +4,81 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Ink.Runtime;
+using UnityEngine.EventSystems;
 
 public class DialogueManager : MonoBehaviour
 {
+    [Header("Dialogue UI")]
+    [SerializeField] private GameObject dialoguePanel;
+    [SerializeField] private TextMeshProUGUI dialogueText;
+    [SerializeField] private GameObject choiceUI;
+
+    [Header("Choices")]
+    [SerializeField] private Button[] choices; // Buttons for all possible choices
+    private TextMeshProUGUI[] choiceTexts; // Text components for each button
+
+    public Story currentStory;
+    public bool dialogueIsPlaying { get; private set; }
+
     public static DialogueManager instance;
+    private int selectedChoiceIndex = 0; // NEW: for tracking navigation
 
-    public TextMeshProUGUI dialogueText;
-    private Story currentStory;
-    private bool dialogueIsPlaying = false;
-    private bool showingChoices = false;
-
-    private int selectedChoiceIndex = 0;
-
-    void Awake()
+    private void Awake()
     {
+        if (instance != null)
+        {
+            Debug.LogWarning("Found more than one Dialogue Manager in scene!");
+        }
         instance = this;
+
+        // Initialize choiceTexts based on the number of buttons
+        choiceTexts = new TextMeshProUGUI[choices.Length];
+        for (int i = 0; i < choices.Length; i++)
+        {
+            choiceTexts[i] = choices[i].GetComponentInChildren<TextMeshProUGUI>();
+            if (choiceTexts[i] == null)
+            {
+                Debug.LogError($"No TextMeshProUGUI found in choice button {choices[i].name}");
+            }
+        }
     }
 
-    public void EnterDialogueMode(TextAsset inkJSON)
+    public static DialogueManager GetInstance()
     {
-        currentStory = new Story(inkJSON.text);
-        dialogueIsPlaying = true;
-        dialogueText.text = "";
-        ContinueStory();
+        return instance;
     }
 
-    void Update()
+    private void Start()
+    {
+        dialogueIsPlaying = false;
+        dialoguePanel.SetActive(false);
+        choiceUI.SetActive(false);
+    }
+
+    private void Update()
     {
         if (!dialogueIsPlaying) return;
 
-        if (showingChoices)
+        // Scroll or arrows to navigate choices
+        if (currentStory.currentChoices.Count > 0)
         {
-            HandleChoiceInput();
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+
+            if (scroll > 0f || Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                selectedChoiceIndex = Mathf.Max(0, selectedChoiceIndex - 1);
+                HighlightChoice();
+            }
+            else if (scroll < 0f || Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                selectedChoiceIndex = Mathf.Min(currentStory.currentChoices.Count - 1, selectedChoiceIndex + 1);
+                HighlightChoice();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
+            {
+                OnChoiceSelected(selectedChoiceIndex);
+            }
         }
         else if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -43,16 +86,31 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    void ContinueStory()
+    public void EnterDialogueMode(TextAsset inkJSON)
+    {
+        GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().FreezeMovement(true);
+        currentStory = new Story(inkJSON.text);
+        dialogueIsPlaying = true;
+        dialoguePanel.SetActive(true);
+        ContinueStory();
+    }
+
+    public void ExitDialogueMode()
+    {
+        GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().FreezeMovement(false);
+        dialogueIsPlaying = false;
+        dialoguePanel.SetActive(false);
+        dialogueText.text = "";
+        choiceUI.SetActive(false);
+    }
+
+    private void ContinueStory()
     {
         if (currentStory.canContinue)
         {
-            string text = currentStory.Continue();
-            dialogueText.text = text;
-        }
-        else if (currentStory.currentChoices.Count > 0)
-        {
-            DisplayChoicesInline();
+            string rawText = currentStory.Continue();
+            dialogueText.text = ConvertFormatting(rawText);
+            DisplayChoices();
         }
         else
         {
@@ -60,46 +118,66 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    void DisplayChoicesInline()
+    private void DisplayChoices()
     {
-        showingChoices = true;
-        selectedChoiceIndex = 0;
+        List<Choice> currentChoices = currentStory.currentChoices;
 
-        string combinedText = "";
+        if (currentChoices.Count > 0)
+        {
+            choiceUI.SetActive(true);
+            selectedChoiceIndex = 0;
+
+            for (int i = 0; i < choices.Length; i++)
+            {
+                if (i < currentChoices.Count)
+                {
+                    choices[i].gameObject.SetActive(true);
+                    choiceTexts[i].text = currentChoices[i].text;
+                    int choiceIndex = i;
+                    choices[i].onClick.RemoveAllListeners();
+                    choices[i].onClick.AddListener(() => OnChoiceSelected(choiceIndex));
+                }
+                else
+                {
+                    choices[i].gameObject.SetActive(false);
+                }
+            }
+
+            HighlightChoice();
+        }
+        else
+        {
+            choiceUI.SetActive(false);
+        }
+    }
+
+    private void HighlightChoice()
+    {
         for (int i = 0; i < currentStory.currentChoices.Count; i++)
         {
-            string prefix = (i == selectedChoiceIndex) ? "> " : "  ";
-            combinedText += prefix + currentStory.currentChoices[i].text + "\n";
+            string prefix = (i == selectedChoiceIndex) ? "> " : "";
+            choiceTexts[i].text = prefix + currentStory.currentChoices[i].text;
         }
 
-        dialogueText.text = combinedText;
+        EventSystem.current.SetSelectedGameObject(choices[selectedChoiceIndex].gameObject);
     }
 
-    void HandleChoiceInput()
+    private void OnChoiceSelected(int choiceIndex)
     {
-        if (Input.GetAxis("Mouse ScrollWheel") > 0f || Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            selectedChoiceIndex = Mathf.Max(0, selectedChoiceIndex - 1);
-            DisplayChoicesInline();
-        }
-        else if (Input.GetAxis("Mouse ScrollWheel") < 0f || Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            selectedChoiceIndex = Mathf.Min(currentStory.currentChoices.Count - 1, selectedChoiceIndex + 1);
-            DisplayChoicesInline();
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-        {
-            currentStory.ChooseChoiceIndex(selectedChoiceIndex);
-            showingChoices = false;
-            ContinueStory();
-        }
+        currentStory.ChooseChoiceIndex(choiceIndex);
+        choiceUI.SetActive(false);
+        ContinueStory();
     }
 
-    void ExitDialogueMode()
+    private string ConvertFormatting(string text)
     {
-        dialogueText.text = "";
-        dialogueIsPlaying = false;
-        showingChoices = false;
+        string[] lines = text.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].TrimStart().StartsWith("*")) continue;
+            lines[i] = System.Text.RegularExpressions.Regex.Replace(lines[i], @"\[\[(.*?)\]\]", "<b>$1</b>");
+            lines[i] = System.Text.RegularExpressions.Regex.Replace(lines[i], @"\[(.*?)\]", "<i>$1</i>");
+        }
+        return string.Join("\n", lines);
     }
 }

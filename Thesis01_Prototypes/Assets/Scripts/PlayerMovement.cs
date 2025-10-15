@@ -8,6 +8,8 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private Vector2 moveInput;
 
+    private bool isFrozen = false;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();  
@@ -15,6 +17,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (isFrozen) return;
         moveInput.x = Input.GetAxis("Horizontal");
         moveInput.y = Input.GetAxis("Vertical") * 0.75f; //0.75f to dampen the up and down/backwards and forwards speed
     }
@@ -35,5 +38,20 @@ public class PlayerMovement : MonoBehaviour
             Vector2 clampedPosition = rb.position;
         clampedPosition.y = Mathf.Clamp(clampedPosition.y, -1.75f, 0.3f);
         rb.position = clampedPosition;
+    }
+
+    public void FreezeMovement(bool freeze)
+    {
+        isFrozen = freeze;
+
+        if (freeze && rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        }
+        else if (!freeze && rb != null)
+        {
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
     }
 }
