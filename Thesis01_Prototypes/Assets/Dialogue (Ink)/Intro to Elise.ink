@@ -46,7 +46,7 @@ Elise: Back again? Still chasing ghosts, or just watching the waves?
     
 + Do you believe in the curse? 
     Elise: Believe in it? No. But I feel it in my joints. 
-    Elise: A kind of ache in the land. The trees don’t sing the way they used to
+    Elise: A kind of ache in the land. The trees don’t sing the way they used to.
     Elise: Others say the land remembers what was taken. 
     -> MAIN_LOOP 
     
