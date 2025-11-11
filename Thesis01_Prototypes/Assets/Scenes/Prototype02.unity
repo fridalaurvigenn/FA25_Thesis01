@@ -487,6 +487,7 @@ MonoBehaviour:
   - {fileID: 95952663}
   - {fileID: 1326655870}
   - {fileID: 426688593}
+  globalsJSON: {fileID: 4900000, guid: 72e7dd443cf7d61429965dae37f72f8e, type: 3}
 --- !u!4 &341658278
 Transform:
   m_ObjectHideFlags: 0
@@ -3130,7 +3131,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 6
+  m_Constraints: 4
 --- !u!61 &1977911458
 BoxCollider2D:
   m_ObjectHideFlags: 0
