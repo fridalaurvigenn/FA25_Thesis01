@@ -14,14 +14,17 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private GameObject choiceUI;
 
     [Header("Choices")]
-    [SerializeField] private Button[] choices; // Buttons for all possible choices
-    private TextMeshProUGUI[] choiceTexts; // Text components for each button
+    [SerializeField] private Button[] choices; //Buttons for all possible choices
+    private TextMeshProUGUI[] choiceTexts; //Text components for each button
 
     public Story currentStory;
     public bool dialogueIsPlaying { get; private set; }
 
     public static DialogueManager instance;
-    private int selectedChoiceIndex = 0; // NEW: for tracking navigation
+    private int selectedChoiceIndex = 0; //For tracking navigation
+
+    [SerializeField] private TextAsset globalsJSON;
+    private InkDialogueVariables globals;
 
     private void Awake()
     {
@@ -31,7 +34,7 @@ public class DialogueManager : MonoBehaviour
         }
         instance = this;
 
-        // Initialize choiceTexts based on the number of buttons
+        //Initialize choiceTexts based on the number of buttons
         choiceTexts = new TextMeshProUGUI[choices.Length];
         for (int i = 0; i < choices.Length; i++)
         {
@@ -53,13 +56,16 @@ public class DialogueManager : MonoBehaviour
         dialogueIsPlaying = false;
         dialoguePanel.SetActive(false);
         choiceUI.SetActive(false);
+
+        //Build the globals bridge from compiled globals.ink.json
+        globals = new InkDialogueVariables(globalsJSON);
     }
 
     private void Update()
     {
         if (!dialogueIsPlaying) return;
 
-        // Scroll or arrows to navigate choices
+        //Scroll or arrows to navigate choices
         if (currentStory.currentChoices.Count > 0)
         {
             float scroll = Input.GetAxis("Mouse ScrollWheel");
@@ -90,6 +96,10 @@ public class DialogueManager : MonoBehaviour
     {
         GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().FreezeMovement(true);
         currentStory = new Story(inkJSON.text);
+
+        //Inject globals so VARs persists
+        globals.StartListening(currentStory);
+
         dialogueIsPlaying = true;
         dialoguePanel.SetActive(true);
         ContinueStory();
@@ -97,6 +107,15 @@ public class DialogueManager : MonoBehaviour
 
     public void ExitDialogueMode()
     {
+        //Stop listening so bridge stores changed globals
+        if (currentStory != null && globals != null)
+            globals.StopListening(currentStory);
+
+        Debug.Log($"[Ink] greeted_elise on open = {currentStory.variablesState["greeted_elise"]}");
+        //Fully release UI focus so the I key works again
+        foreach (var b in choices) b.onClick.RemoveAllListeners();
+        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+
         GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().FreezeMovement(false);
         dialogueIsPlaying = false;
         dialoguePanel.SetActive(false);
@@ -140,6 +159,8 @@ public class DialogueManager : MonoBehaviour
                 else
                 {
                     choices[i].gameObject.SetActive(false);
+                    if (EventSystem.current != null)
+                        EventSystem.current.SetSelectedGameObject(null); //drop focus
                 }
             }
 

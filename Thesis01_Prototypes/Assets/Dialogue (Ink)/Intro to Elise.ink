@@ -1,16 +1,16 @@
-INCLUDE globals.ink 
-VAR mentionedMother = false 
+INCLUDE Globals.ink
 
 -> elise_intro 
 
 === elise_intro === 
-{greeted_elise == false: 
--> FIRST_MEETING 
-- else: 
--> RETURN_MEETING 
-} 
+{ greeted_elise:
+    -> RETURN_MEETING
+- else:
+    -> FIRST_MEETING
+}
+
 === FIRST_MEETING ===
-~ greeted_elise = true 
+~ greeted_elise = true
 You approach the elderly woman by the dock. 
 Elderly Woman: You’re not from around here... I’m Elise. 
 ... 
@@ -35,7 +35,9 @@ Elise: Or maybe it's you bringing the silence with you.
 === RETURN_MEETING === 
 Elise: Back again? Still chasing ghosts, or just watching the waves? 
 ...
--> MAIN_LOOP 
+She glances at the horizon, where the sea meets the fog.
+Elise: I’ll see you soon again, I’m sure.
+    -> END
 
 === MAIN_LOOP === 
 + You know this town well? 
@@ -55,6 +57,8 @@ Elise: Back again? Still chasing ghosts, or just watching the waves?
     
     + {!mentionedMother} Someone I knew tried to fix things once. 
         -> FIXING_NOT_MENTIONED 
+    
+    -> MAIN_LOOP 
     
     + I should go. 
         Elise: Then go. The tide won’t wait for you. 
