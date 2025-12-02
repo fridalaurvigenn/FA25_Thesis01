@@ -128,13 +128,13 @@ public class DialogueManager : MonoBehaviour
         choiceUI.SetActive(false);
 
         // Unlock Elise journal entry (only once, handled inside the journal)
-        if (unlocksEliseEntry && journalUI != null)
+        if (unlocksEliseEntry && journalUI != null && eliseReflectionPage != null)
         {
-            // Make sure the Elise page is active so it can be seen in the Reflections tab
-            if (eliseReflectionPage != null)
-                eliseReflectionPage.SetActive(true);
-
-            journalUI.UnlockEliseReflection();
+            journalUI.NotifyNewEntry(
+                eliseReflectionPage,
+                "Press [Tab] to open Journal - New Entry!",
+                2   // 2 = Reflections tab, matching reflectionsTabIndex
+            );
         }
     }
 

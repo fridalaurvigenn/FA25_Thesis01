@@ -43,7 +43,6 @@ public class JournalUIController : MonoBehaviour
     private int[] currentPageIndex;
 
     // Makes sure Elise reflection hint/jump only happens once
-    private bool eliseReflectionUnlocked = false;
     private Coroutine hideHintCoroutine = null;
 
     private void Awake()
@@ -69,6 +68,23 @@ public class JournalUIController : MonoBehaviour
 
         if (newEntryHintPanel != null)
             newEntryHintPanel.SetActive(false);
+
+        // makes sure locked pages start hidden
+        foreach (var groupObj in tabPageGroups)
+        {
+            if (groupObj == null) continue;
+            Transform group = groupObj.transform;
+
+            for (int i = 0; i < group.childCount; i++)
+            {
+                GameObject page = group.GetChild(i).gameObject;
+                JournalPage jp = page.GetComponent<JournalPage>();
+                if (jp != null && !jp.isUnlocked)
+                {
+                    page.SetActive(false);
+                }
+            }
+        }
 
         ShowTab(0);
     }
@@ -230,13 +246,23 @@ public class JournalUIController : MonoBehaviour
         int leftIndex = Mathf.Clamp(currentPageIndex[tabIndex], 0, Mathf.Max(childCount - 1, 0));
         int rightIndex = leftIndex + 1;
 
-        // Left page
+        // Left page: only show if unlocked (or no JournalPage attached)
         if (leftIndex < childCount)
-            group.GetChild(leftIndex).gameObject.SetActive(true);
+        {
+            GameObject leftPage = group.GetChild(leftIndex).gameObject;
+            JournalPage jpLeft = leftPage.GetComponent<JournalPage>();
+            if (jpLeft == null || jpLeft.isUnlocked)
+                leftPage.SetActive(true);
+        }
 
-        // Right page (optional)
+        // Right page: same logic
         if (rightIndex < childCount)
-            group.GetChild(rightIndex).gameObject.SetActive(true);
+        {
+            GameObject rightPage = group.GetChild(rightIndex).gameObject;
+            JournalPage jpRight = rightPage.GetComponent<JournalPage>();
+            if (jpRight == null || jpRight.isUnlocked)
+                rightPage.SetActive(true);
+        }
     }
 
     private void NextPage()
@@ -274,6 +300,14 @@ public class JournalUIController : MonoBehaviour
     {
         if (pageObj == null) return;
 
+        // Mark this page as unlocked so ShowPageSpread is allowed to show it
+        JournalPage jp = pageObj.GetComponent<JournalPage>();
+        if (jp != null)
+            jp.isUnlocked = true;
+
+        // Make sure the page is active so it can be shown
+        pageObj.SetActive(true);
+
         // Decide which tab this entry lives in
         int tabIndex = (tabIndexOverride >= 0) ? tabIndexOverride : reflectionsTabIndex;
 
@@ -300,7 +334,7 @@ public class JournalUIController : MonoBehaviour
         if (newEntryHintText != null && !string.IsNullOrEmpty(message))
             newEntryHintText.text = message;
 
-        // Optionally start auto-hide here too if you use this method
+        // Optionally start auto-hide here too if using this method
         if (hideHintCoroutine != null)
             StopCoroutine(hideHintCoroutine);
         hideHintCoroutine = StartCoroutine(HideHintAfterDelay(5f));
@@ -310,27 +344,21 @@ public class JournalUIController : MonoBehaviour
 
     public void UnlockEliseReflection()
     {
-        // 1) Only do this the first time ever (per playthrough)
-        if (eliseReflectionUnlocked)
-            return;
-
-        eliseReflectionUnlocked = true;
-
-        // 2) We know Elise's reflection is in the Reflections tab, page 0
+        // 1) We know Elise's reflection is in the Reflections tab, page 0
         int elisePageIndex = 0; // first page in Reflections
 
         hasPendingJump  = true;
         pendingTabIndex = reflectionsTabIndex;
         pendingPageIndex = elisePageIndex;
 
-        // 3) Show the hint UI
+        // 2) Show the hint UI
         if (newEntryHintText != null)
             newEntryHintText.text = "Press [Tab] to open Journal - New Entry!";
 
         if (newEntryHintPanel != null)
             newEntryHintPanel.SetActive(true);
 
-        // 4) Start / restart the auto-hide timer
+        // 3) Start / restart the auto-hide timer
         if (hideHintCoroutine != null)
             StopCoroutine(hideHintCoroutine);
 
